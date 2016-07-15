@@ -19,11 +19,11 @@ This gives us a cell number of 13302x32768 + 30148 = 435910084
 435910084 is a hash that can be used to store all the lat,lon points that fall within the grid cell of Sydney's coordinates. 
 This cell is surrounded by 8 cells with the following hashes
 
-```435910084-32768-1 to the NE | 435910084-32768 to the north| 435910084-32768+1 to the NW
--------
-435910084-1 to the east     |          435910084          | 435910084+1 to the west
------
-435910084+32768-1 to the SE | 435910084+32768 to the south| 435910084+32768+1 to the SW```
+> 435910084-32768-1 NE | 435910084-32768  north| 435910084-32768+1 e NW
+
+> 435910084-1 to the east     | [ [ [ [ [ 435910084 ] ] ] ] ] | 435910084+1 to the west
+
+> 435910084+32768-1  SE | 435910084+32768  south| 435910084+32768+1  SW
 
 
 _Some useful info:
