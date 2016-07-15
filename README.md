@@ -36,6 +36,6 @@ At equator, a grid cell's width is 40030.13978 / 32768 = 1.2216km. So, **if you 
 These are a lot of queries. So the width of your cell is important. 
 #Some other constraints that influence the grid cell size
 - If dynamoDB query result exceeds 1MB within your grid cell (before filter), the query stops and results are returned with the LastEvaluatedKey element to continue the query in a subsequent operation. Therefore, if your grid cell is too large, you will have to make more queries
-- the grid size is small enough to work within the dynamoDB contraints of 10TB of data per hash if you have lat and long as Local Secondary Indexes (You can calculate the lat long min, max and pass in KeyConditionExpression)
+- the grid size must remain within the dynamoDB contraints of 10TB of data per hash if you have lat and long as Local Secondary Indexes (You can calculate the lat long min, max and pass in KeyConditionExpression)
 - dynamoDB's batchGet cannot be used if you do not know the primary key, so you have to fire a query for each cell.  
 - at 60deg lat, the cell width reduces to half. Therefore, for your Nordic friends searching for a point of interest within 1km, you may have to search 2 cells across. You hope you don't have any users at poles :-)
