@@ -3,39 +3,39 @@ node.js geo-hash module for dynamodb
 
 #Concept
 
-Define a grid, just like the lat-long grid for the earth surface. 
-For example sake, let's say we divide the earth surface with a grid system of 32768 x 32768
-(32768 is 2^15, but you may choose any other number depending on the constraints discussed below).
-To reference with the lat-long values, let's say that latitude 90N and longitude 0 is the top left corner of first cell of our grid system. The cells are numbered l to 32768 in the first row, then 32769 to 2x32768 in the second row etc and the last cell of the last row is numbered 32768x32768.
+Define a grid, just like the lat-lon grid for the earth surface. As in Lat-Lon, there are 180 latitudes, 360 longitudes, you can define a grid of n/2 x n (where n is 360, or anything else suitable for your app - see grid size).
+Then we number these n/2 rows of n cells from 1 (first cell at the south pole) to n (n th cell at the bottom row)
+through n+1 for cell directly above cell 1. 
 
-Since there are 360 degrees in lat and 360 degrees in long, each degree of lat represents 32768/360 = 91.0222 gridlines in our example system.
+##Usage
+Typical use case:
+1. Store lat,lon data grouped by geohash 
+2. Find geoHashes within "r" km radius of user's location, to query specific geoHashes instead of scan entire DB
 
-Sydney's lat,lon is -33.865143, 151.209900. These are -180 to 180 degree scale, and we can convert these to 0-360 scale by adding 180 to the values. From this lat long value, we can calculate our grid row as:
-Math.ceil( (-33.865143 +180) x 32768/360 ) =13302
-and from lon value, we can calculate the grid cell in the row as:
-Math.ceil( (151.209900 +180) x 32768/360 ) =30148
-This gives us a cell number of 13302x32768 + 30148 = 435910084
+```
+var node-geo = require('node-geo);
+var grid = new node-geo(32768); // create a grid of 32768 longitudes and 32768/2 latitudes
 
-435910084 is a hash that can be used to store all the lat,lon points that fall within the grid cell of Sydney's coordinates. 
-This cell is surrounded by 8 cells with the following hashes
+var hash = grid.geoHash( -33.865143, 151.209900, cb(err,data) )
+//returns the hash of the grid cell containing Sydney's lat/lon
 
-> 435910084-32768-1 NE | 435910084-32768  north| 435910084-32768+1 e NW
+//**proximity hashes**
+var hashes = grid.neighbours9( lat, lon, cb(err,data) );
+// returns an array of 9 hashes, 1 of the cell where lat, lon falls, and 8 of the surrounding
+//neighbours9() is the more efficient than possibleHashes()
 
-> 435910084-1 to the east     | [ [ [ [ [ 435910084 ] ] ] ] ] | 435910084+1 to the west
+var hashes = grid.possibleHashes( lat, lon, r, cb(err,data));
+// returns array of hashes of all the cells which are overlaped by a circle of radius r centered at lat, lon 
+// this is a calculation intensive function 
+```
+##Some Tips: 
+- Store lat and lon as local secondary indexed columns
+- Earth's radius is 6371km, i.e, circumfrence is 40030km. If you use n = 40030/5 = 8006, your grid cell will be 5km wide at the equator. If your app allows user to search within 5km, neighbour9() will return 9 cells which will cover more than 5km
+- Near arctic circle, neighbours9() returned hashes may cover less (eg 2.5km at 60deg) due to convergence of longitude lines. 
+- You may use neighbours9() for lat values in tropics and possibleHashes() at high latitudes 
 
-> 435910084+32768-1  SE | 435910084+32768  south| 435910084+32768+1  SW
-
-
-_Some useful info:
-Earth's radius is 6371km. 
-Therefore, surface area of 510,049,428.8 km2
-and circumfrence is 40030.13978_
-
-At equator, a grid cell's width is 40030.13978 / 32768 = 1.2216km. So, **if you are looking for all the points in your database within 1km radius of Sydney, your query doesn't need to search beyond the 9 hashes above**. Similarly, if you were to search for all the points within 5km radius, you can query the hashes from 5 cells to the left, through 5 to the right, 11 cells in a row, and 5 rows above, 5 rows below , ie., 121 rows. 
-
-These are a lot of queries. So the width of your cell is important. 
-#Some other constraints that influence the grid cell size
-- If dynamoDB query result exceeds 1MB within your grid cell (before filter), the query stops and results are returned with the LastEvaluatedKey element to continue the query in a subsequent operation. Therefore, if your grid cell is too large, you will have to make more queries
-- the grid size must remain within the dynamoDB contraints of 10TB of data per hash if you have lat and long as Local Secondary Indexes (You can calculate the lat long min, max and pass in KeyConditionExpression)
-- dynamoDB's batchGet cannot be used if you do not know the primary key, so you have to fire a query for each cell.  
-- at 60deg lat, the cell width reduces to half. Therefore, for your Nordic friends searching for a point of interest within 1km, you may have to search 2 cells across. You hope you don't have any users at poles :-)
+### Grid Size and DynamoDB
+Some more constraints that will influence the grid cell size that you choose 
+- If dynamoDB query result exceeds **1MB** within your grid cell (before filter), the query stops and results are returned with the LastEvaluatedKey element to continue the query in a subsequent operation. Therefore, if your grid cell is too large, you will have to make more queries
+- The grid size must remain within the dynamoDB contraints of 10TB of data per hash if you have lat and long as Local Secondary Indexes (You can calculate the lat long min, max and pass in KeyConditionExpression)
+- DynamoDB's batchGet cannot be used for proximity searcges as you do not know the primary key. You will have to fire async queries for the hashes of proximity cells.
