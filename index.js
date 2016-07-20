@@ -20,10 +20,10 @@ method.hash = function(lat, lon) {
 };
 
 method.geoHash=function(lat,lon){
-    if(lon<0)
+    if(lon<0) //left boundary
         lat++;
-    if(lon>this._n)
-        lat--;
+    if(lon>this._n) //rt boundary
+        lat--; 
     return Math.floor(lat)*this._n + Math.floor(lon);
 };
 
@@ -142,15 +142,16 @@ method.possibleHashes = function(lat, lon, r, cb) {
          
          endGridLon = gridLon-r*this._GRID_UNIT_TO_KM;
          
-         hl = -Math.ceil(gridLon) + Math.ceil(endGridLon);
+         hl = -Math.floor(gridLon) + Math.floor(endGridLon);
          console.log('gridLon: '+gridLon+' endGridLon:'+endGridLon +' hl:'+hl);
     
          endGridLon = gridLon + r*this._GRID_UNIT_TO_KM;
-         hr = - Math.ceil(gridLon) + Math.ceil(endGridLon);
+         hr = - Math.floor(gridLon) + Math.floor(endGridLon);
          console.log('gridLon: '+gridLon+' endGridLon:'+endGridLon +' hr:'+hr);
     
          console.log('center line hl:'+hl+ ' hr: '+hr);
          //left boundary
+         /*
          if(gridLon + hl <0){
              for(var b = Math.floor(gridLon)+hl ; b<0;b++ ){
                  hashes.push(Math.ceil(gridLat+1)*this._n+b+1);
@@ -162,23 +163,21 @@ method.possibleHashes = function(lat, lon, r, cb) {
                  hashes.push(Math.ceil(gridLat-1)*this._n +b);
              }
              hr = Math.floor(this._n -gridLon);
-         }
+         }*/
          for(var i = hl; i <=hr; i++){
-             hashes.push(centerHash+i);
+             hashes.push(this.geoHash(gridLat,gridLon+i));
          }
          
-         
-         //hashes.push(0);
      }
      
      //bottom
      endGridLat = gridLat - r* this._GRID_UNIT_TO_KM;
     // console.log('topGridLat:'+topGridLat);
-     endGridLon = gridLon;
-     endHash = Math.floor(endGridLat)*this._n + Math.ceil(endGridLon);
-     console.log('bottom hash:'+endHash+ ' endGridLat'+endGridLat);
+     //endGridLon = gridLon;
+     endHash =  this.geoHash(endGridLat, gridLon); //
+     console.log('bottom hash:'+endHash+ ' endGridLat'+endGridLat); //
    //  var topWithinCenterCell = false;
-     if(endHash < centerHash){
+     if(Math.floor(endGridLat) < gridLat){
 
         var vb = Math.floor(endGridLat)-Math.floor(gridLat);     
 
@@ -191,7 +190,7 @@ method.possibleHashes = function(lat, lon, r, cb) {
              //console.log('Math.floor(gridLon)+hl'+Math.floor(gridLon)+hl); console.log('dist top left:'+this.distGrid( Math.ceil(gridLat+vt)-1, Math.floor(gridLon)+hl, gridLat, gridLon));
                
                
-             if( this.distGrid( Math.ceil(gridLat +vb)+1, Math.floor(gridLon)+hl, gridLat, gridLon) <= r) 
+             if( this.distGrid( Math.ceil(gridLat)+vb, Math.floor(gridLon)+hl, gridLat, gridLon) <= r) 
                 hl--;
              else
                 brk = true;	     
@@ -200,12 +199,13 @@ method.possibleHashes = function(lat, lon, r, cb) {
             //   console.log('vt: '+vt); console.log('Math.ceil(gridLat+vt)-1:'+ Math.ceil(gridLat+vt-1));
               // console.log(' Math.ceil(gridLon)+hr:'+ Math.ceil(gridLon)+hr);
                //console.log('dist form top right:'+this.distGrid( Math.ceil(gridLat+vt)-1, Math.ceil(gridLon)+hr, gridLat, gridLon)); 
-             if( this.distGrid( Math.ceil(gridLat+vb)+1, Math.ceil(gridLon)+hr, gridLat, gridLon) <= r) 
+             if( this.distGrid( Math.ceil(gridLat)+vb, Math.ceil(gridLon)+hr, gridLat, gridLon) <= r) 
                 hr++;
               else
                 brk=true;
 
            } while(!brk);
+           /*
            if(gridLon + hl < 0){ //boundary left
                for(var b = Math.floor(gridLon)+hl; b<0; b++){
                    hashes.push(Math.ceil(gridLat+vb+1)*this._n + b +1);
@@ -219,23 +219,16 @@ method.possibleHashes = function(lat, lon, r, cb) {
                    console.log('geoGrid right boundary bottom');
                }
                hr = Math.floor(this._n -gridLon);
-           }
+           }*/
             console.log('hl'+hl+', hr:'+hr+ ', vb:'+vb);
            for (var i = hl; i<=hr; i++){ 
-             hashes.push(centerHash + vb*this._n + i);
+             hashes.push(this.geoHash(gridLat+vb, i));
            }
             vb++;
         } while (vb<0) 
 
      }
-    
- 
-
-   //check for boundary condition
-
-
-   //check for poles
-
+      
    return cb(err, hashes);  
 };
 
@@ -252,9 +245,9 @@ method.transLat= function(Lat){
 
 method.distGrid= function( lat1, lon1, lat2, lon2){
    // console.log('lat1, lon1 '+lat1+','+lon1);
-    var lon1Unit = Math.sin(lat1/this._n *Math.PI *2);
-    var lon2Unit = Math.sin(lat2/this._n *Math.PI *2);
-    var factor = (lon1Unit+lon2Unit)/2;
+    var factor = Math.sin((lat1+lat2)/this._n *Math.PI );
+    //var lon2Unit = Math.sin(lat2/this._n *Math.PI *2);
+    //var factor = (lon1Unit+lon2Unit)/2;
 //    console.log('lon2 ' + lon2 +'  lon1 '+lon1);
   //  console.log('lon1Unit :'+lon1Unit + '  lon2unit: '+ lon2Unit +'lon2-lon1:' +(lon2-lon1)+ '    lon2 * lon2Unit -lon1*lon1Unit:'+(lon2 * lon2Unit) +':::' +(lon1*lon1Unit));
   return Math.sqrt( Math.pow((lat2-lat1),2) + Math.pow((lon2  -lon1)*factor,2) ) / this._GRID_UNIT_TO_KM;
