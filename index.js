@@ -20,6 +20,10 @@ method.hash = function(lat, lon) {
 };
 
 method.geoHash=function(lat,lon){
+    if(lon<0)
+        lat++;
+    if(lon>this._n)
+        lat--;
     return Math.floor(lat)*this._n + Math.floor(lon);
 };
 
@@ -81,13 +85,13 @@ method.possibleHashes = function(lat, lon, r, cb) {
      //var topHash = Math.ceil(this.trans(lat) - r * this._GRID_UNIT_TO_KM)*this._n + Math.ceil(this.trans(lon));
      var endGridLat = gridLat + r* this._GRID_UNIT_TO_KM;
     // console.log('endGridLat:'+endGridLat);
-     var endGridLon = gridLon;
-     var endHash = this.geoHash(endGridLat, endGridLon);
-     console.log('Top hash:'+endHash);
+    
+     var endHash = this.geoHash(endGridLat, gridLon); //
+     console.log('Top hash:'+endHash); //
+     
    //  var endWithinCenterCell = false;
-     if(endHash > centerHash){
-
-        var vt = (endHash-centerHash)/this._n;     
+     if(Math.floor(endGridLat) > gridLat){ 
+        var vt = Math.floor(endGridLat)-Math.floor(gridLat);     
          console.log('vt      : .... '+vt);
         do{
            var hl = 0;
@@ -95,21 +99,20 @@ method.possibleHashes = function(lat, lon, r, cb) {
            do{ 
              var brk = false;
              //check the left to end cell intersects with the circle
-             if( this.distGrid( Math.floor(gridLat+vt)-1, Math.floor(gridLon)+hl, gridLat, gridLon) <= r) 
+             if( this.distGrid( Math.floor(gridLat)+vt, Math.floor(gridLon)+hl, gridLat, gridLon) <= r) 
                 hl--;
              else
                 brk = true;	     
              
              //right of end cell
-            
-             if( this.distGrid( Math.floor(gridLat+vt)-1, Math.ceil(gridLon)+hr, gridLat, gridLon) <= r) 
+             if( this.distGrid( Math.floor(gridLat)+vt, Math.ceil(gridLon)+hr, gridLat, gridLon) <= r) 
                 hr++;
               else
                 brk=true;
 
            } while(!brk);
             console.log('===gridLon + hl'+(gridLon + hl));
-           if(gridLon + hl < 0){ //boundary left
+          /* if(gridLon + hl < 0){ //boundary left
                for(var b = Math.floor(gridLon)+hl; b<0; b++){
                    hashes.push( this.geoHash(gridLat+vt+1, b+1));
                    console.log('geoGrid left boundary top b:'+b+' hl'+hl);
@@ -122,10 +125,10 @@ method.possibleHashes = function(lat, lon, r, cb) {
                    console.log('geoGrid right boundary top');
                }
                hr = Math.floor(this._n -gridLon);
-           }
+           }*/
            // console.log('hl'+hl+', hr:'+hr);
            for (var i = hl; i<=hr; i++){ 
-             hashes.push(centerHash + vt*this._n + i);
+             hashes.push(this.geoHash(gridLat+vt,gridLon+i));
            }
             vt--;
         } while (vt>0) 
