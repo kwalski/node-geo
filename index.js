@@ -67,7 +67,7 @@ method.possibleHashes = function(lat, lon, r, cb) {
     var err = null;
    //find the hashes inside or on the circle
     var centerHash = this.hash(lat,lon);
-    console.log('----centerHash: '+centerHash);
+    console.log('ph----centerHash: '+centerHash);
     var gridLat = this.transLat(lat);
     var gridLon = this.transLon(lon);
 
@@ -76,7 +76,8 @@ method.possibleHashes = function(lat, lon, r, cb) {
     //console.log('north pole dist:'+this.distGrid(gridLat, 0,this._n/2, 0 ));
     if( (this.distGrid(gridLat, 0,0,0) <=r) || (this.distGrid(gridLat, 0,this._n/2, 0 ) <=r) ){
         console.log('too close to pole');
-        return cb(err, hashes);
+        hashes.push(centerHash);
+        return cb(hashes);
     }
         
     
@@ -222,7 +223,7 @@ method.possibleHashes = function(lat, lon, r, cb) {
            }*/
             console.log('hl'+hl+', hr:'+hr+ ', vb:'+vb);
            for (var i = hl; i<=hr; i++){ 
-             hashes.push(this.geoHash(gridLat+vb, i));
+             hashes.push(this.geoHash(gridLat+vb, gridLon+i));
            }
             vb++;
         } while (vb<0) 
